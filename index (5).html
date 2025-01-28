@@ -1,0 +1,171 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Estacionamiento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-roboto">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold text-center mb-4">ESTACIONAMIENTO OJITOS BONITOS <3 </h1>
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="mb-4">
+                <label for="TextBoxNombre" class="block text-gray-700">Nombre:</label>
+                <input type="text" id="TextBoxNombre" class="w-full p-2 border border-gray-300 rounded mt-1">
+            </div>
+            <div class="mb-4">
+                <label for="TextBoxPlaca" class="block text-gray-700">Placa:</label>
+                <input type="text" id="TextBoxPlaca" class="w-full p-2 border border-gray-300 rounded mt-1">
+            </div>
+            <div class="mb-4">
+                <label for="TextBoxHoraEntrada" class="block text-gray-700">Hora de Entrada:</label>
+                <input type="time" id="TextBoxHoraEntrada" class="w-full p-2 border border-gray-300 rounded mt-1">
+            </div>
+            <button id="ButtonGuardar" class="w-full bg-blue-500 text-white p-2 rounded mt-2 hover:bg-blue-600">Guardar Registro</button>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
+            <button id="ButtonMostrar" class="w-full bg-green-500 text-white p-2 rounded mt-2 hover:bg-green-600">Mostrar Registros</button>
+            <ul id="ListViewRegistros" class="mt-4 list-disc list-inside"></ul>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
+            <div class="mb-4">
+                <label for="TextBoxBuscar" class="block text-gray-700">Buscar por Nombre:</label>
+                <input type="text" id="TextBoxBuscar" class="w-full p-2 border border-gray-300 rounded mt-1">
+            </div>
+            <button id="ButtonBuscar" class="w-full bg-yellow-500 text-white p-2 rounded mt-2 hover:bg-yellow-600">Buscar Registro</button>
+            <div id="ResultadoBusqueda" class="mt-4"></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
+            <div class="mb-4">
+                <label for="TextBoxEliminar" class="block text-gray-700">Eliminar por Nombre:</label>
+                <input type="text" id="TextBoxEliminar" class="w-full p-2 border border-gray-300 rounded mt-1">
+            </div>
+            <div class="mb-4">
+                <label for="TextBoxHoraSalidaEliminar" class="block text-gray-700">Hora de Salida:</label>
+                <input type="time" id="TextBoxHoraSalidaEliminar" class="w-full p-2 border border-gray-300 rounded mt-1">
+            </div>
+            <button id="ButtonEliminar" class="w-full bg-red-500 text-white p-2 rounded mt-2 hover:bg-red-600">Eliminar Registro</button>
+        </div>
+    </div>
+
+    <script>
+        let registros = JSON.parse(localStorage.getItem('registros')) || []; // Recuperar registros al cargar la página
+
+        function guardarEnLocalStorage() {
+            localStorage.setItem('registros', JSON.stringify(registros));
+        }
+
+        function calcularTarifa(horaEntrada, horaSalida) {
+            const entrada = horaEntrada.split(':');
+            const salida = horaSalida.split(':');
+
+            const minutosEntrada = parseInt(entrada[0]) * 60 + parseInt(entrada[1]);
+            const minutosSalida = parseInt(salida[0]) * 60 + parseInt(salida[1]);
+
+            const diferencia = minutosSalida - minutosEntrada;
+            
+            if (diferencia <= 360) { // Menor o igual a 6 horas
+                return 20; // Tarifa fija
+            } else {
+                const horasExtras = Math.ceil((diferencia - 360) / 30);
+                return 20 + (horasExtras * 10);
+            }
+        }
+
+        function limpiarCampos() {
+            document.getElementById('TextBoxNombre').value = '';
+            document.getElementById('TextBoxPlaca').value = '';
+            document.getElementById('TextBoxHoraEntrada').value = '';
+            document.getElementById('TextBoxEliminar').value = '';
+            document.getElementById('TextBoxHoraSalidaEliminar').value = '';
+        }
+
+        document.getElementById('ButtonGuardar').addEventListener('click', function() {
+            const nombre = document.getElementById('TextBoxNombre').value;
+            const placa = document.getElementById('TextBoxPlaca').value;
+            const horaEntrada = document.getElementById('TextBoxHoraEntrada').value;
+
+            if (nombre && placa && horaEntrada) {
+                const registro = [nombre, placa, horaEntrada];
+                registros.push(registro);
+                guardarEnLocalStorage(); // Guardar en LocalStorage
+                alert('Registro guardado correctamente.');
+                limpiarCampos();
+            } else {
+                alert('Por favor, completa todos los campos.');
+            }
+        });
+
+        document.getElementById('ButtonMostrar').addEventListener('click', function() {
+            const listView = document.getElementById('ListViewRegistros');
+            listView.innerHTML = '';
+            if (registros.length === 0) {
+                listView.innerHTML = '<li>No hay registros disponibles.</li>';
+            } else {
+                registros.forEach(registro => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `Nombre: ${registro[0]} | Placa: ${registro[1]} | Entrada: ${registro[2]}`;
+                    listView.appendChild(listItem);
+                });
+            }
+        });
+
+        document.getElementById('ButtonBuscar').addEventListener('click', function() {
+            const nombreBuscar = document.getElementById('TextBoxBuscar').value;
+            const resultadoBusqueda = document.getElementById('ResultadoBusqueda');
+            resultadoBusqueda.innerHTML = '';
+            let encontrado = false;
+
+            registros.forEach(registro => {
+                if (registro[0].toLowerCase() === nombreBuscar.toLowerCase()) {
+                    const detalleRegistro = `
+                        <p><strong>Nombre:</strong> ${registro[0]}</p>
+                        <p><strong>Placa:</strong> ${registro[1]}</p>
+                        <p><strong>Hora de Entrada:</strong> ${registro[2]}</p>
+                    `;
+                    resultadoBusqueda.innerHTML = detalleRegistro;
+                    encontrado = true;
+                }
+            });
+
+            if (!encontrado) {
+                resultadoBusqueda.innerHTML = '<p>No se encontró un registro con ese nombre.</p>';
+            }
+        });
+
+        document.getElementById('ButtonEliminar').addEventListener('click', function() {
+            const nombreEliminar = document.getElementById('TextBoxEliminar').value;
+            const horaSalida = document.getElementById('TextBoxHoraSalidaEliminar').value;
+            let encontrado = false;
+
+            registros = registros.filter(registro => {
+                if (registro[0] === nombreEliminar) {
+                    if (horaSalida) {
+                        const tarifa = calcularTarifa(registro[2], horaSalida);
+                        alert(`Registro eliminado correctamente. Tarifa: ${tarifa} pesos.`);
+                    } else {
+                        alert('Por favor, ingrese la hora de salida.');
+                        return true;
+                    }
+                    encontrado = true;
+                    return false;
+                }
+                return true;
+            });
+
+            if (!encontrado) {
+                alert('No se encontró el registro para eliminar.');
+            } else {
+                guardarEnLocalStorage(); // Actualizar LocalStorage
+            }
+
+            limpiarCampos();
+        });
+    </script>
+</body>
+</html>
